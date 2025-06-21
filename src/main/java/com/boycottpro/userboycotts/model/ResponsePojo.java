@@ -61,4 +61,6 @@ public class ResponsePojo {
     public void setReasons(List<CauseSummary> reasons) {
         this.reasons = reasons;
     }
+
 }
+

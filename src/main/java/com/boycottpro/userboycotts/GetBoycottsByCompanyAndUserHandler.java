@@ -82,6 +82,7 @@ public class GetBoycottsByCompanyAndUserHandler implements RequestHandler<APIGat
         List<CauseSummary> reasons = matchingRecords.stream()
                 .map(item -> new CauseSummary(
                         item.getOrDefault("cause_id", AttributeValue.fromS("")).s(),
+                        item.getOrDefault("company_cause_id", AttributeValue.fromS("")).s(),
                         item.getOrDefault("cause_desc", AttributeValue.fromS("")).s()))
                 .collect(Collectors.toList());
         // Find the record with the earliest timestamp
