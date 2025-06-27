@@ -1,8 +1,6 @@
 package com.boycottpro.userboycotts;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import com.boycottpro.userboycotts.GetBoycottsByCompanyAndUserHandler;
-import com.boycottpro.userboycotts.model.ResponsePojo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;

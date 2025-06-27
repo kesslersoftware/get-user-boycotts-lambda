@@ -5,10 +5,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 
-import com.boycottpro.models.UserBoycotts;
-import com.boycottpro.userboycotts.model.CauseSummary;
 import com.boycottpro.userboycotts.model.ResponsePojo;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
@@ -79,11 +76,14 @@ public class GetBoycottsByCompanyAndUserHandler implements RequestHandler<APIGat
             return result;
         }
         // Map each record to a CauseSummary
-        List<CauseSummary> reasons = matchingRecords.stream()
-                .map(item -> new CauseSummary(
-                        item.getOrDefault("cause_id", AttributeValue.fromS("")).s(),
-                        item.getOrDefault("company_cause_id", AttributeValue.fromS("")).s(),
-                        item.getOrDefault("cause_desc", AttributeValue.fromS("")).s()))
+        List<String> reasons = matchingRecords.stream()
+                .map(item -> {
+                    AttributeValue causeDescAttr = item.get("cause_desc");
+                    AttributeValue personalReasonAttr = item.get("personal_reason");
+                    return (causeDescAttr != null && causeDescAttr.s() != null && !causeDescAttr.s().isEmpty())
+                            ? causeDescAttr.s()
+                            : (personalReasonAttr != null ? personalReasonAttr.s() : "");
+                })
                 .collect(Collectors.toList());
         // Find the record with the earliest timestamp
         Map<String, AttributeValue> earliest = matchingRecords.stream()
