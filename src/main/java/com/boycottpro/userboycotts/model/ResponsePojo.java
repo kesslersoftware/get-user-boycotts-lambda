@@ -8,13 +8,13 @@ public class ResponsePojo {
     private String company_id;
     private String company_name;
     private String boycottingSince;
-    private List<String> reasons;
+    private List<CauseSummary> reasons;
 
     public ResponsePojo() {
     }
 
     public ResponsePojo(boolean isBoycotting, String company_id, String company_name,
-                        String boycottingSince, List<String> reasons) {
+                        String boycottingSince, List<CauseSummary> reasons) {
         this.isBoycotting = isBoycotting;
         this.company_id = company_id;
         this.company_name = company_name;
@@ -54,11 +54,11 @@ public class ResponsePojo {
         this.company_name = company_name;
     }
 
-    public List<String> getReasons() {
+    public List<CauseSummary> getReasons() {
         return reasons;
     }
 
-    public void setReasons(List<String> reasons) {
+    public void setReasons(List<CauseSummary> reasons) {
         this.reasons = reasons;
     }
 
