@@ -34,7 +34,7 @@ public class GetBoycottsByCompanyAndUserHandlerTest {
         String companyId = "test-company";
 
         Map<String, String> pathParams = Map.of(
-                "user_id", userId,
+                "user_id", "s",
                 "company_id", companyId
         );
 
@@ -53,10 +53,17 @@ public class GetBoycottsByCompanyAndUserHandlerTest {
 
         when(dynamoDb.query(any(QueryRequest.class))).thenReturn(queryResponse);
 
-        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
-        request.setPathParameters(pathParams);
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        Map<String, String> claims = Map.of("sub", "11111111-2222-3333-4444-555555555555");
+        Map<String, Object> authorizer = new HashMap<>();
+        authorizer.put("claims", claims);
 
-        APIGatewayProxyResponseEvent response = handler.handleRequest(request, context);
+        APIGatewayProxyRequestEvent.ProxyRequestContext rc = new APIGatewayProxyRequestEvent.ProxyRequestContext();
+        rc.setAuthorizer(authorizer);
+        event.setRequestContext(rc);
+        event.setPathParameters(pathParams);
+
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         assertEquals(200, response.getStatusCode());
         assertTrue(response.getBody().contains("Test Corp"));
@@ -66,20 +73,29 @@ public class GetBoycottsByCompanyAndUserHandlerTest {
 
     @Test
     public void testMissingUserId() {
-        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
-        request.setPathParameters(Map.of("company_id", "test-company"));
+        APIGatewayProxyRequestEvent event = null;
 
-        APIGatewayProxyResponseEvent response = handler.handleRequest(request, context);
-        assertEquals(400, response.getStatusCode());
-        assertTrue(response.getBody().contains("Missing user_id"));
+        var response = handler.handleRequest(event, mock(Context.class));
+
+        assertEquals(401, response.getStatusCode());
+        assertTrue(response.getBody().contains("Unauthorized"));
     }
 
     @Test
     public void testMissingCompanyId() {
-        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
-        request.setPathParameters(Map.of("user_id", "test-user"));
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        Map<String, String> claims = Map.of("sub", "11111111-2222-3333-4444-555555555555");
+        Map<String, Object> authorizer = new HashMap<>();
+        authorizer.put("claims", claims);
 
-        APIGatewayProxyResponseEvent response = handler.handleRequest(request, context);
+        APIGatewayProxyRequestEvent.ProxyRequestContext rc = new APIGatewayProxyRequestEvent.ProxyRequestContext();
+        rc.setAuthorizer(authorizer);
+        event.setRequestContext(rc);
+
+        // Path param "s" since client calls /users/s
+        event.setPathParameters(Map.of("user_id", "s"));
+
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
         assertEquals(400, response.getStatusCode());
         assertTrue(response.getBody().contains("Missing company_id"));
     }
@@ -88,20 +104,27 @@ public class GetBoycottsByCompanyAndUserHandlerTest {
     public void testNoMatchingRecords() {
         String userId = "test-user";
         String companyId = "test-company";
-
+        Map<String, String> pathParams = Map.of(
+                "user_id", "s",
+                "company_id", companyId
+        );
         QueryResponse queryResponse = QueryResponse.builder()
                 .items(Collections.emptyList())
                 .build();
 
         when(dynamoDb.query(any(QueryRequest.class))).thenReturn(queryResponse);
 
-        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
-        request.setPathParameters(Map.of(
-                "user_id", userId,
-                "company_id", companyId
-        ));
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        Map<String, String> claims = Map.of("sub", "11111111-2222-3333-4444-555555555555");
+        Map<String, Object> authorizer = new HashMap<>();
+        authorizer.put("claims", claims);
 
-        APIGatewayProxyResponseEvent response = handler.handleRequest(request, context);
+        APIGatewayProxyRequestEvent.ProxyRequestContext rc = new APIGatewayProxyRequestEvent.ProxyRequestContext();
+        rc.setAuthorizer(authorizer);
+        event.setRequestContext(rc);
+        event.setPathParameters(pathParams);
+
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
         assertEquals(200, response.getStatusCode());
         assertTrue(response.getBody().contains("\"boycotting\":false"));
     }

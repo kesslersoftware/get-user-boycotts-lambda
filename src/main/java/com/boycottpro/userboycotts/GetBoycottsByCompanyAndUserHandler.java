@@ -8,6 +8,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.boycottpro.models.UserBoycotts;
 import com.boycottpro.userboycotts.model.CauseSummary;
 import com.boycottpro.userboycotts.model.ResponsePojo;
+import com.boycottpro.utilities.JwtUtility;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -33,32 +34,29 @@ public class GetBoycottsByCompanyAndUserHandler implements RequestHandler<APIGat
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
         try {
+            String sub = JwtUtility.getSubFromRestEvent(event);
+            if (sub == null) return response(401, "Unauthorized");
             Map<String, String> pathParams = event.getPathParameters();
-            String userId = (pathParams != null) ? pathParams.get("user_id") : null;
             String companyId = (pathParams != null) ? pathParams.get("company_id") : null;
-            if (userId == null || userId.isEmpty()) {
-                return new APIGatewayProxyResponseEvent()
-                        .withStatusCode(400)
-                        .withBody("{\"error\":\"Missing user_id in path\"}");
-            }
             if (companyId == null || companyId.isEmpty()) {
-                return new APIGatewayProxyResponseEvent()
-                        .withStatusCode(400)
-                        .withBody("{\"error\":\"Missing company_id in path\"}");
+                return response(400,"error : Missing company_id in path");
             }
-            ResponsePojo results = getBoycottWithOldestTimestamp(userId, companyId);
+            ResponsePojo results = getBoycottWithOldestTimestamp(sub, companyId);
             String responseBody = objectMapper.writeValueAsString(results);
-            return new APIGatewayProxyResponseEvent()
-                    .withStatusCode(200)
-                    .withHeaders(Map.of("Content-Type", "application/json"))
-                    .withBody(responseBody);
+            return response(200,responseBody);
         } catch (Exception e) {
             e.printStackTrace();
-            return new APIGatewayProxyResponseEvent()
-                    .withStatusCode(500)
-                    .withBody("{\"error\": \"Unexpected server error: " + e.getMessage() + "\"}");
+            return response(500,"error : Unexpected server error: " + e.getMessage());
         }
     }
+
+    private APIGatewayProxyResponseEvent response(int status, String body) {
+        return new APIGatewayProxyResponseEvent()
+                .withStatusCode(status)
+                .withHeaders(Map.of("Content-Type", "application/json"))
+                .withBody(body);
+    }
+
     private ResponsePojo getBoycottWithOldestTimestamp(String userId, String companyId) {
         QueryRequest request = QueryRequest.builder()
                 .tableName("user_boycotts")
@@ -86,11 +84,11 @@ public class GetBoycottsByCompanyAndUserHandler implements RequestHandler<APIGat
                         if(causeDescAttr != null && causeDescAttr.s() != null && !causeDescAttr.s().isEmpty()) {
                             return new CauseSummary(
                                     item.getOrDefault("cause_id", AttributeValue.fromS("")).s(),
-                                    causeDescAttr.s());
+                                    causeDescAttr.s(),false);
                         } else {
                             return new CauseSummary(
                                     item.getOrDefault("cause_id", AttributeValue.fromS("")).s(),
-                                    personalReasonAttr.s());
+                                    personalReasonAttr.s(),true);
                         }
                         })
                 .collect(Collectors.toList());
