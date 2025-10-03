@@ -9,6 +9,7 @@ import com.boycottpro.models.UserBoycotts;
 import com.boycottpro.userboycotts.model.CauseSummary;
 import com.boycottpro.userboycotts.model.ResponsePojo;
 import com.boycottpro.utilities.JwtUtility;
+import com.boycottpro.utilities.Logger;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -34,18 +35,26 @@ public class GetBoycottsByCompanyAndUserHandler implements RequestHandler<APIGat
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
         String sub = null;
+        int lineNum = 38;
         try {
             sub = JwtUtility.getSubFromRestEvent(event);
-            if (sub == null) return response(401, Map.of("message", "Unauthorized"));
+            if (sub == null) {
+            Logger.error(41, sub, "user is Unauthorized");
+            return response(401, Map.of("message", "Unauthorized"));
+        }
+            lineNum = 45;
             Map<String, String> pathParams = event.getPathParameters();
             String companyId = (pathParams != null) ? pathParams.get("company_id") : null;
             if (companyId == null || companyId.isEmpty()) {
+                Logger.error(49, sub, "Missing company_id in path");
                 return response(400,Map.of("error","Missing company_id in path"));
             }
+            lineNum = 52;
             ResponsePojo results = getBoycottWithOldestTimestamp(sub, companyId);
+            lineNum = 54;
             return response(200,results);
         } catch (Exception e) {
-            System.out.println(e.getMessage() + " for user " + sub);
+            Logger.error(lineNum, sub, e.getMessage());
             return response(500,Map.of("error", "Unexpected server error: " + e.getMessage()) );
         }
     }
